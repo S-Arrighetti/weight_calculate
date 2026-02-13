@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>重量配分練習 - Weight Distribution Practice</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #e8ecf1;
+    color: #333;
+    padding: 20px;
+  }
+
+  h1 {
+    text-align: center;
+    color: #003366;
+    margin-bottom: 20px;
+    font-size: 1.6em;
+  }
+
+  /* ===== 入力セクション ===== */
+  .input-section {
+    background: #fff;
+    border: 2px solid #003366;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .input-section h2 {
+    color: #003366;
+    font-size: 1.1em;
+    margin-bottom: 15px;
+    border-bottom: 2px solid #003366;
+    padding-bottom: 5px;
+  }
+  .input-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 12px;
+    margin-bottom: 15px;
+  }
+  .input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .input-group label {
+    font-weight: bold;
+    font-size: 0.85em;
+    color: #003366;
+  }
+  .input-row {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+  }
+  .input-row input[type="number"] {
+    flex: 1;
+    padding: 6px 8px;
+    border: 1px solid #999;
+    border-radius: 4px;
+    font-size: 0.95em;
+    width: 80px;
+  }
+  .btn-random {
+    background: #336699;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    padding: 6px 10px;
+    cursor: pointer;
+    font-size: 0.8em;
+    white-space: nowrap;
+  }
+  .btn-random:hover { background: #224477; }
+
+  .btn-load {
+    display: block;
+    margin: 0 auto;
+    background: #003366;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 10px 40px;
+    font-size: 1.05em;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  .btn-load:hover { background: #00244d; }
+
+  /* ===== リアルタイム現況 ===== */
+  .status-bar {
+    background: #fff;
+    border: 2px solid #003366;
+    border-radius: 8px;
+    padding: 15px 20px;
+    margin-bottom: 20px;
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+    display: none;
+  }
+  .status-bar h2 {
+    color: #003366;
+    font-size: 1.1em;
+    margin-bottom: 10px;
+    border-bottom: 2px solid #003366;
+    padding-bottom: 5px;
+  }
+  .status-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 10px;
+  }
+  .status-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 10px;
+    background: #f0f4f8;
+    border-radius: 4px;
+  }
+  .status-item .label { font-weight: bold; color: #003366; }
+  .status-item .value { font-weight: bold; }
+  .status-item .value.ok { color: #006600; }
+  .status-item .value.over { color: #cc0000; }
+
+  /* ===== AWB情報 ===== */
+  .awb-info {
+    background: #fff;
+    border: 2px solid #003366;
+    border-radius: 8px;
+    padding: 15px 20px;
+    margin-bottom: 20px;
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+    display: none;
+  }
+  .awb-info h2 {
+    color: #003366;
+    font-size: 1.1em;
+    margin-bottom: 10px;
+    border-bottom: 2px solid #003366;
+    padding-bottom: 5px;
+  }
+  .awb-detail {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    font-size: 0.95em;
+  }
+  .awb-detail span { font-weight: bold; color: #003366; }
+
+  /* ===== パレットセクション ===== */
+  .pallet-section {
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  .pallet-card {
+    background: #fff;
+    border: 2px solid #003366;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    overflow: hidden;
+  }
+  .pallet-header {
+    background: #003366;
+    color: #fff;
+    padding: 10px 15px;
+    font-weight: bold;
+    font-size: 1em;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .pallet-header .mnfst-label {
+    background: #ff6600;
+    padding: 3px 10px;
+    border-radius: 4px;
+    font-size: 0.9em;
+  }
+  .pallet-header .pallet-status {
+    font-size: 0.85em;
+    font-weight: normal;
+  }
+  .pallet-header .pallet-status.complete { color: #66ff66; }
+  .pallet-header .pallet-status.incomplete { color: #ffcc00; }
+
+  /* ===== ULD Content テーブル ===== */
+  .uld-title {
+    padding: 8px 15px;
+    font-weight: bold;
+    color: #003366;
+    background: #f0f4f8;
+    font-size: 0.95em;
+  }
+  .uld-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85em;
+  }
+  .uld-table thead th {
+    background: #1a5276;
+    color: #fff;
+    padding: 8px 6px;
+    text-align: center;
+    font-weight: bold;
+    font-size: 0.9em;
+    border: 1px solid #0d3b5e;
+  }
+  .uld-table tbody tr:nth-child(odd) { background: #fff; }
+  .uld-table tbody tr:nth-child(even) { background: #dce8f0; }
+  .uld-table tbody td {
+    padding: 8px 6px;
+    text-align: center;
+    border: 1px solid #ccd9e3;
+  }
+  .uld-table tbody td.awb { font-family: monospace; font-size: 0.95em; }
+  .uld-table tbody td.num {
+    text-align: right;
+    padding-right: 10px;
+  }
+  .uld-table input[type="number"] {
+    width: 70px;
+    padding: 3px 5px;
+    border: 1px solid #999;
+    border-radius: 3px;
+    text-align: right;
+    font-size: 0.9em;
+  }
+
+  /* ===== ボタン ===== */
+  .btn-icon {
+    width: 30px;
+    height: 30px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1em;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .btn-edit { background: #e8e0c0; color: #333; }
+  .btn-edit:hover { background: #d4c890; }
+  .btn-save { background: #a0b8c8; color: #333; }
+  .btn-save:hover { background: #8aa8bc; }
+  .btn-delete { background: #cc3333; color: #fff; border-radius: 50%; }
+  .btn-delete:hover { background: #aa1111; }
+  .btn-add-row {
+    background: #336699;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    padding: 5px 15px;
+    cursor: pointer;
+    font-size: 0.85em;
+    margin: 8px 15px;
+  }
+  .btn-add-row:hover { background: #224477; }
+
+  .actions-cell {
+    display: flex;
+    gap: 4px;
+    justify-content: center;
+  }
+
+  /* ===== 警告メッセージ ===== */
+  .warning {
+    color: #cc0000;
+    font-weight: bold;
+    font-size: 0.85em;
+    padding: 5px 15px;
+    display: none;
+  }
+
+  /* ===== フッター ===== */
+  .footer {
+    text-align: center;
+    color: #999;
+    font-size: 0.8em;
+    margin-top: 30px;
+    padding-top: 15px;
+    border-top: 1px solid #ccc;
+  }
+</style>
+</head>
+<body>
+
+<h1>重量配分練習 - Weight Distribution Practice</h1>
+
+<!-- 入力セクション -->
+<div class="input-section">
+  <h2>AWB 設定</h2>
+  <div class="input-grid">
+    <div class="input-group">
+      <label>個数 (NOP)</label>
+      <div class="input-row">
+        <input type="number" id="inputNop" min="1" max="99" value="4" step="1">
+        <button class="btn-random" onclick="randomize('inputNop', 2, 20, true)">ランダム</button>
+      </div>
+    </div>
+    <div class="input-group">
+      <label>重量 (Weight kg)</label>
+      <div class="input-row">
+        <input type="number" id="inputWeight" min="1" max="9999" value="500" step="0.1">
+        <button class="btn-random" onclick="randomize('inputWeight', 50, 2000, false)">ランダム</button>
+      </div>
+    </div>
+    <div class="input-group">
+      <label>容積 (Vol. CBM)</label>
+      <div class="input-row">
+        <input type="number" id="inputVol" min="0.1" max="99" value="3.0" step="0.01">
+        <button class="btn-random" onclick="randomize('inputVol', 0.5, 15, false)">ランダム</button>
+      </div>
+    </div>
+    <div class="input-group">
+      <label>ULD 数</label>
+      <div class="input-row">
+        <input type="number" id="inputUld" min="2" max="10" value="2" step="1">
+        <button class="btn-random" onclick="randomize('inputUld', 2, 5, true)">ランダム</button>
+      </div>
+    </div>
+  </div>
+  <button class="btn-load" onclick="generateProblem()">読み込み</button>
+</div>
+
+<!-- AWB情報 -->
+<div class="awb-info" id="awbInfo">
+  <h2>AWB 情報</h2>
+  <div class="awb-detail">
+    <div><span>AWB No.:</span> <span id="dispAwb"></span></div>
+    <div><span>総個数:</span> <span id="dispNop"></span></div>
+    <div><span>総重量:</span> <span id="dispWeight"></span> kg</div>
+    <div><span>総容積:</span> <span id="dispVol"></span> CBM</div>
+  </div>
+</div>
+
+<!-- リアルタイム現況 -->
+<div class="status-bar" id="statusBar">
+  <h2>リアルタイム現況</h2>
+  <div class="status-grid">
+    <div class="status-item">
+      <div class="label">残り個数</div>
+      <div class="value" id="remainNop">-</div>
+    </div>
+    <div class="status-item">
+      <div class="label">残り重量</div>
+      <div class="value" id="remainWeight">-</div>
+    </div>
+    <div class="status-item">
+      <div class="label">登録済個数</div>
+      <div class="value" id="usedNop">-</div>
+    </div>
+    <div class="status-item">
+      <div class="label">登録済重量</div>
+      <div class="value" id="usedWeight">-</div>
+    </div>
+  </div>
+</div>
+
+<!-- パレットセクション -->
+<div class="pallet-section" id="palletSection"></div>
+
+<div class="footer">Weight Distribution Practice - CargoHelper</div>
+
+<script>
+// ===== グローバル状態 =====
+let awbData = {
+  awbNo: '',
+  totalNop: 0,
+  totalWeight: 0,
+  totalVol: 0,
+  uldCount: 0,
+};
+// pallets[i] = { mnfstWeight, destCode, rows: [{ nop, weight, vol, saved }] }
+let pallets = [];
+const DESTINATIONS = ['BKK','HKG','DOH','SZX','CTU','IST','SIN'];
+
+// ===== ユーティリティ =====
+function randomize(id, min, max, isInt) {
+  const el = document.getElementById(id);
+  let val;
+  if (isInt) {
+    val = Math.floor(Math.random() * (max - min + 1)) + min;
+  } else {
+    val = Math.random() * (max - min) + min;
+    val = Math.round(val * 10) / 10;
+  }
+  el.value = val;
+}
+
+function generateAwbNo() {
+  const prefix = '217';
+  let num = '';
+  for (let i = 0; i < 8; i++) num += Math.floor(Math.random() * 10);
+  return prefix + '-' + num;
+}
+
+function roundTo(val, dec) {
+  const f = Math.pow(10, dec);
+  return Math.round(val * f) / f;
+}
+
+function pickRandom(arr) {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+// ===== 個数をランダムに配分 (合計 = total, 分割数 = parts, 各最低1) =====
+function distributeCount(total, parts) {
+  if (parts >= total) {
+    // ULD数が個数以上なら各1個ずつ、足りない分は0
+    const arr = [];
+    for (let i = 0; i < parts; i++) arr.push(i < total ? 1 : 0);
+    return arr;
+  }
+  // 各ULDに最低1個保証
+  const arr = new Array(parts).fill(1);
+  let remaining = total - parts;
+  // 残りをランダムに配分
+  for (let i = 0; i < remaining; i++) {
+    const idx = Math.floor(Math.random() * parts);
+    arr[idx]++;
+  }
+  return arr;
+}
+
+// ===== MNFST重量をランダムに配分 (合計 = total, 分割数 = parts) =====
+function distributeMnfstWeight(total, parts) {
+  // ランダムな比率を生成
+  const ratios = [];
+  let sum = 0;
+  for (let i = 0; i < parts; i++) {
+    const r = Math.random() + 0.3; // 最低0.3の重みを保証
+    ratios.push(r);
+    sum += r;
+  }
+  // 比率に基づいて配分
+  const result = [];
+  let assigned = 0;
+  for (let i = 0; i < parts - 1; i++) {
+    const val = roundTo(total * ratios[i] / sum, 1);
+    result.push(val);
+    assigned += val;
+  }
+  // 最後のULDは残り全部 (合計を正確に合わせる)
+  result.push(roundTo(total - assigned, 1));
+  return result;
+}
+
+// ===== 問題生成 =====
+function generateProblem() {
+  const totalNop = parseInt(document.getElementById('inputNop').value) || 4;
+  const totalWeight = parseFloat(document.getElementById('inputWeight').value) || 500;
+  const totalVol = parseFloat(document.getElementById('inputVol').value) || 3.0;
+  const uldCount = parseInt(document.getElementById('inputUld').value) || 2;
+
+  if (totalNop < uldCount) {
+    alert('個数はULD数以上にしてください。');
+    return;
+  }
+
+  awbData = {
+    awbNo: generateAwbNo(),
+    totalNop: totalNop,
+    totalWeight: roundTo(totalWeight, 1),
+    totalVol: roundTo(totalVol, 2),
+    uldCount: uldCount,
+  };
+
+  // 個数配分
+  const nopDist = distributeCount(totalNop, uldCount);
+
+  // 重量・容積を個数比率で配分
+  const weightDist = [];
+  const volDist = [];
+  let nopSum = totalNop;
+  let wAssigned = 0;
+  let vAssigned = 0;
+  for (let i = 0; i < uldCount - 1; i++) {
+    const w = roundTo(totalWeight * nopDist[i] / totalNop, 1);
+    const v = roundTo(totalVol * nopDist[i] / totalNop, 2);
+    weightDist.push(w);
+    volDist.push(v);
+    wAssigned += w;
+    vAssigned += v;
+  }
+  weightDist.push(roundTo(totalWeight - wAssigned, 1));
+  volDist.push(roundTo(totalVol - vAssigned, 2));
+
+  // MNFST重量をランダムに配分
+  const mnfstDist = distributeMnfstWeight(totalWeight, uldCount);
+
+  // パレット生成
+  pallets = [];
+  for (let i = 0; i < uldCount; i++) {
+    const dest = pickRandom(DESTINATIONS);
+    pallets.push({
+      mnfstWeight: mnfstDist[i],
+      destCode: dest,
+      rows: [{
+        nop: nopDist[i],
+        weight: weightDist[i],
+        vol: volDist[i],
+        saved: true,
+        editing: false,
+      }]
+    });
+  }
+
+  // 表示
+  document.getElementById('awbInfo').style.display = 'block';
+  document.getElementById('statusBar').style.display = 'block';
+  document.getElementById('dispAwb').textContent = awbData.awbNo;
+  document.getElementById('dispNop').textContent = awbData.totalNop;
+  document.getElementById('dispWeight').textContent = awbData.totalWeight;
+  document.getElementById('dispVol').textContent = awbData.totalVol;
+
+  renderPallets();
+  updateStatus();
+}
+
+// ===== パレット描画 =====
+function renderPallets() {
+  const container = document.getElementById('palletSection');
+  container.innerHTML = '';
+
+  pallets.forEach((pallet, pi) => {
+    const card = document.createElement('div');
+    card.className = 'pallet-card';
+
+    // パレットの登録済み重量合計
+    const palletWeightSum = pallet.rows.reduce((s, r) => s + (r.saved ? r.weight : 0), 0);
+    const palletNopSum = pallet.rows.reduce((s, r) => s + (r.saved ? r.nop : 0), 0);
+    const isComplete = Math.abs(palletWeightSum - pallet.mnfstWeight) < 0.05;
+    const statusText = isComplete ? '完了' : `残り ${roundTo(pallet.mnfstWeight - palletWeightSum, 1)}kg`;
+    const statusClass = isComplete ? 'complete' : 'incomplete';
+
+    card.innerHTML = `
+      <div class="pallet-header">
+        <div>
+          ${pi + 1}番目のパレット
+          <span class="mnfst-label">MNFST重量 ${pallet.mnfstWeight}kg に修正</span>
+        </div>
+        <div class="pallet-status ${statusClass}">${statusText}</div>
+      </div>
+      <div class="uld-title">ULD Content</div>
+      <table class="uld-table">
+        <thead>
+          <tr>
+            <th style="width:30px">T</th>
+            <th style="width:130px">AWB No.</th>
+            <th style="width:60px">NOP</th>
+            <th style="width:80px">Weight</th>
+            <th style="width:60px">Vol.</th>
+            <th style="width:50px">Org.</th>
+            <th style="width:50px">Dest.</th>
+            <th style="width:120px">SHC</th>
+            <th>Remarks</th>
+            <th style="width:90px">操作</th>
+          </tr>
+        </thead>
+        <tbody id="palletBody${pi}">
+        </tbody>
+      </table>
+      <div class="warning" id="warning${pi}"></div>
+    `;
+
+    container.appendChild(card);
+
+    const tbody = document.getElementById(`palletBody${pi}`);
+    pallet.rows.forEach((row, ri) => {
+      renderRow(tbody, pi, ri, row);
+    });
+  });
+}
+
+function renderRow(tbody, pi, ri, row) {
+  const tr = document.createElement('tr');
+
+  if (row.editing) {
+    tr.innerHTML = `
+      <td></td>
+      <td class="awb">${awbData.awbNo}</td>
+      <td><input type="number" id="editNop${pi}_${ri}" value="${row.nop}" min="0" max="99" step="1"></td>
+      <td><input type="number" id="editWeight${pi}_${ri}" value="${row.weight}" min="0" max="9999" step="0.1"></td>
+      <td><input type="number" id="editVol${pi}_${ri}" value="${row.vol}" min="0" max="99" step="0.01"></td>
+      <td>KIX</td>
+      <td>${pallets[pi].destCode}</td>
+      <td></td>
+      <td></td>
+      <td class="actions-cell">
+        <button class="btn-icon btn-save" title="保存" onclick="saveRow(${pi},${ri})">&#128190;</button>
+        <button class="btn-icon btn-delete" title="削除" onclick="deleteRow(${pi},${ri})">&#10006;</button>
+      </td>
+    `;
+  } else {
+    tr.innerHTML = `
+      <td></td>
+      <td class="awb">${awbData.awbNo}</td>
+      <td class="num">${row.nop}</td>
+      <td class="num">${row.weight}</td>
+      <td class="num">${row.vol}</td>
+      <td>KIX</td>
+      <td>${pallets[pi].destCode}</td>
+      <td></td>
+      <td></td>
+      <td class="actions-cell">
+        <button class="btn-icon btn-edit" title="編集" onclick="editRow(${pi},${ri})">&#9998;</button>
+        <button class="btn-icon btn-save" title="保存" disabled>&#128190;</button>
+        <button class="btn-icon btn-delete" title="削除" onclick="deleteRow(${pi},${ri})">&#10006;</button>
+      </td>
+    `;
+  }
+
+  tbody.appendChild(tr);
+}
+
+// ===== 編集 =====
+function editRow(pi, ri) {
+  pallets[pi].rows[ri].editing = true;
+  pallets[pi].rows[ri].saved = false;
+  renderPallets();
+  updateStatus();
+}
+
+// ===== 保存 =====
+function saveRow(pi, ri) {
+  const nopEl = document.getElementById(`editNop${pi}_${ri}`);
+  const weightEl = document.getElementById(`editWeight${pi}_${ri}`);
+  const volEl = document.getElementById(`editVol${pi}_${ri}`);
+
+  const newNop = parseInt(nopEl.value) || 0;
+  const newWeight = roundTo(parseFloat(weightEl.value) || 0, 1);
+  const newVol = roundTo(parseFloat(volEl.value) || 0, 2);
+
+  // 検証: 個数
+  const currentTotalNop = getTotalUsedNop(pi, ri);
+  if (currentTotalNop + newNop > awbData.totalNop) {
+    showWarning(pi, `個数オーバー！ 登録可能残り: ${awbData.totalNop - currentTotalNop}個`);
+    return;
+  }
+
+  // 検証: 重量
+  const currentTotalWeight = getTotalUsedWeight(pi, ri);
+  if (roundTo(currentTotalWeight + newWeight, 1) > awbData.totalWeight) {
+    showWarning(pi, `重量オーバー！ 登録可能残り: ${roundTo(awbData.totalWeight - currentTotalWeight, 1)}kg`);
+    return;
+  }
+
+  pallets[pi].rows[ri].nop = newNop;
+  pallets[pi].rows[ri].weight = newWeight;
+  pallets[pi].rows[ri].vol = newVol;
+  pallets[pi].rows[ri].saved = true;
+  pallets[pi].rows[ri].editing = false;
+
+  hideWarning(pi);
+  renderPallets();
+  updateStatus();
+}
+
+// ===== 削除 =====
+function deleteRow(pi, ri) {
+  if (pallets[pi].rows.length <= 1) {
+    // 最後の1行は削除不可、値をゼロにリセット
+    pallets[pi].rows[0] = { nop: 0, weight: 0, vol: 0, saved: true, editing: false };
+  } else {
+    pallets[pi].rows.splice(ri, 1);
+  }
+  renderPallets();
+  updateStatus();
+}
+
+// ===== 合計計算 (特定行を除外) =====
+function getTotalUsedNop(excludePi, excludeRi) {
+  let total = 0;
+  pallets.forEach((p, pi) => {
+    p.rows.forEach((r, ri) => {
+      if (pi === excludePi && ri === excludeRi) return;
+      if (r.saved) total += r.nop;
+    });
+  });
+  return total;
+}
+
+function getTotalUsedWeight(excludePi, excludeRi) {
+  let total = 0;
+  pallets.forEach((p, pi) => {
+    p.rows.forEach((r, ri) => {
+      if (pi === excludePi && ri === excludeRi) return;
+      if (r.saved) total += r.weight;
+    });
+  });
+  return roundTo(total, 1);
+}
+
+// ===== リアルタイム現況更新 =====
+function updateStatus() {
+  let usedNop = 0;
+  let usedWeight = 0;
+  pallets.forEach(p => {
+    p.rows.forEach(r => {
+      if (r.saved) {
+        usedNop += r.nop;
+        usedWeight += r.weight;
+      }
+    });
+  });
+  usedWeight = roundTo(usedWeight, 1);
+
+  const remainNop = awbData.totalNop - usedNop;
+  const remainWeight = roundTo(awbData.totalWeight - usedWeight, 1);
+
+  const remainNopEl = document.getElementById('remainNop');
+  const remainWeightEl = document.getElementById('remainWeight');
+  const usedNopEl = document.getElementById('usedNop');
+  const usedWeightEl = document.getElementById('usedWeight');
+
+  remainNopEl.textContent = `${remainNop} 個`;
+  remainNopEl.className = 'value ' + (remainNop >= 0 ? 'ok' : 'over');
+
+  remainWeightEl.textContent = `${remainWeight} kg`;
+  remainWeightEl.className = 'value ' + (remainWeight >= 0 ? 'ok' : 'over');
+
+  usedNopEl.textContent = `${usedNop} / ${awbData.totalNop} 個`;
+  usedNopEl.className = 'value ' + (usedNop <= awbData.totalNop ? 'ok' : 'over');
+
+  usedWeightEl.textContent = `${usedWeight} / ${awbData.totalWeight} kg`;
+  usedWeightEl.className = 'value ' + (usedWeight <= awbData.totalWeight ? 'ok' : 'over');
+}
+
+// ===== 警告表示 =====
+function showWarning(pi, msg) {
+  const el = document.getElementById(`warning${pi}`);
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+function hideWarning(pi) {
+  const el = document.getElementById(`warning${pi}`);
+  el.style.display = 'none';
+}
+</script>
+</body>
+</html>
