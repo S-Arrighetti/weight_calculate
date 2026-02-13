@@ -469,19 +469,22 @@ function generateProblem() {
 
   const nopDist = distributeCount(totalNop, uldCount);
 
+  // Distribute weight/vol per piece then multiply by nop per ULD
+  // Individual row weights use 2 decimal places, but total must match xxx.x
   const weightDist = [];
   const volDist = [];
   let wAssigned = 0;
   let vAssigned = 0;
   for (let i = 0; i < uldCount - 1; i++) {
-    const w = roundTo(totalWeight * nopDist[i] / totalNop, 1);
+    const w = roundTo(totalWeight * nopDist[i] / totalNop, 2);
     const v = roundTo(totalVol * nopDist[i] / totalNop, 2);
     weightDist.push(w);
     volDist.push(v);
-    wAssigned += w;
-    vAssigned += v;
+    wAssigned = roundTo(wAssigned + w, 2);
+    vAssigned = roundTo(vAssigned + v, 2);
   }
-  weightDist.push(roundTo(totalWeight - wAssigned, 1));
+  // Last ULD gets remainder to ensure sum matches total exactly
+  weightDist.push(roundTo(totalWeight - wAssigned, 2));
   volDist.push(roundTo(totalVol - vAssigned, 2));
 
   const mnfstDist = distributeMnfstWeight(totalWeight, uldCount);
@@ -522,9 +525,9 @@ function renderPallets() {
     const card = document.createElement('div');
     card.className = 'pallet-card';
 
-    const palletWeightSum = pallet.rows.reduce((s, r) => s + (r.saved ? r.weight : 0), 0);
-    const isComplete = Math.abs(palletWeightSum - pallet.mnfstWeight) < 0.05;
-    const statusText = isComplete ? 'Complete' : `Remaining ${roundTo(pallet.mnfstWeight - palletWeightSum, 1)}kg`;
+    const palletWeightSum = roundTo(pallet.rows.reduce((s, r) => s + (r.saved ? r.weight : 0), 0), 2);
+    const isComplete = Math.abs(roundTo(palletWeightSum, 1) - pallet.mnfstWeight) < 0.05;
+    const statusText = isComplete ? 'Complete' : `Remaining ${roundTo(pallet.mnfstWeight - palletWeightSum, 2)}kg`;
     const statusClass = isComplete ? 'complete' : 'incomplete';
 
     card.innerHTML = `
@@ -574,7 +577,7 @@ function renderRow(tbody, pi, ri, row) {
       <td></td>
       <td class="awb">${awbData.awbNo}</td>
       <td><input type="number" id="editNop${pi}_${ri}" value="${row.nop}" min="0" max="99" step="1"></td>
-      <td><input type="number" id="editWeight${pi}_${ri}" value="${row.weight}" min="0" max="9999" step="0.1"></td>
+      <td><input type="number" id="editWeight${pi}_${ri}" value="${row.weight}" min="0" max="9999" step="0.01"></td>
       <td><input type="number" id="editVol${pi}_${ri}" value="${row.vol}" min="0" max="99" step="0.01"></td>
       <td>KIX</td>
       <td>${pallets[pi].destCode}</td>
@@ -590,7 +593,7 @@ function renderRow(tbody, pi, ri, row) {
       <td></td>
       <td class="awb">${awbData.awbNo}</td>
       <td class="num">${row.nop}</td>
-      <td class="num">${row.weight}</td>
+      <td class="num">${row.weight.toFixed(2)}</td>
       <td class="num">${row.vol}</td>
       <td>KIX</td>
       <td>${pallets[pi].destCode}</td>
@@ -622,7 +625,7 @@ function saveRow(pi, ri) {
   const volEl = document.getElementById(`editVol${pi}_${ri}`);
 
   const newNop = parseInt(nopEl.value) || 0;
-  const newWeight = roundTo(parseFloat(weightEl.value) || 0, 1);
+  const newWeight = roundTo(parseFloat(weightEl.value) || 0, 2);
   const newVol = roundTo(parseFloat(volEl.value) || 0, 2);
 
   // Validate NOP
@@ -632,10 +635,11 @@ function saveRow(pi, ri) {
     return;
   }
 
-  // Validate Weight
+  // Validate Weight (sum rounded to 1 decimal must not exceed total xxx.x)
   const currentTotalWeight = getTotalUsedWeight(pi, ri);
   if (roundTo(currentTotalWeight + newWeight, 1) > awbData.totalWeight) {
-    showWarning(pi, `Weight exceeded! Remaining available: ${roundTo(awbData.totalWeight - currentTotalWeight, 1)}kg`);
+    const remaining = roundTo(awbData.totalWeight - currentTotalWeight, 2);
+    showWarning(pi, `Weight exceeded! Remaining available: ${remaining}kg`);
     return;
   }
 
@@ -681,7 +685,7 @@ function getTotalUsedWeight(excludePi, excludeRi) {
       if (r.saved) total += r.weight;
     });
   });
-  return roundTo(total, 1);
+  return roundTo(total, 2);
 }
 
 // ===== Update Real-time Status =====
@@ -696,10 +700,10 @@ function updateStatus() {
       }
     });
   });
-  usedWeight = roundTo(usedWeight, 1);
+  usedWeight = roundTo(usedWeight, 2);
 
   const remainNop = awbData.totalNop - usedNop;
-  const remainWeight = roundTo(awbData.totalWeight - usedWeight, 1);
+  const remainWeight = roundTo(awbData.totalWeight - usedWeight, 2);
 
   const remainNopEl = document.getElementById('remainNop');
   const remainWeightEl = document.getElementById('remainWeight');
